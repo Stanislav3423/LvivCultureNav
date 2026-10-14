@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LvivCultureNav — макет</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --ink: #14202E;
+    --ink-2: #2E3B4A;
+    --muted: #4A5868;
+    --ground: #F3F5F7;
+    --card: #FFFFFF;
+    --line: #D5DBE2;
+    --blue: #1C4E9A;
+    --blue-ink: #123A75;
+    --blue-soft: #E3ECF8;
+    --gold: #F2B233;
+    --gold-soft: #FFD47E;
+    --warn-bg: #FFF4DB;
+    --warn-line: #E9C46A;
+    --danger: #B42318;
+    --ok: #1F7A4D;
+    --display: 'Unbounded', system-ui, sans-serif;
+    --body: 'Golos Text', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--body); background: var(--ground); color: var(--ink); }
+  button, input, select, textarea { font: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+
+  /* ---------- demo bar (не частина продукту) ---------- */
+  .demo-bar {
+    height: 44px; padding: 0 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: #E6E9ED; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--muted);
+  }
+  .demo-bar strong { color: var(--ink); }
+  .demo-bar .seg { display: flex; gap: 4px; }
+  .demo-bar .seg button {
+    height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink);
+  }
+  .demo-bar .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .demo-bar label { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+
+  /* ---------- terminal ---------- */
+  #terminal { height: calc(100vh - 44px); min-height: 720px; display: flex; flex-direction: column; }
+  .top {
+    height: 88px; flex: none; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; gap: 24px;
+    background: var(--ink); color: #fff;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-name { font-family: var(--display); font-weight: 600; font-size: 24px; }
+  .brand-sub { font-size: 15px; color: #C5CFDA; }
+  .here { display: flex; align-items: center; gap: 10px; }
+  .here > span { font-size: 15px; color: #C5CFDA; }
+  .chip-btn {
+    height: 48px; padding: 0 20px; border-radius: 24px; border: 2px solid #4A5A6E; background: transparent; color: #fff;
+    font-size: 17px; font-weight: 600;
+  }
+  .chip-btn[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .langs { display: flex; gap: 8px; }
+  .lang-btn {
+    width: 60px; height: 56px; border-radius: 14px; border: 2px solid #4A5A6E; background: transparent; color: #fff;
+    font-size: 17px; font-weight: 700; letter-spacing: 0.04em;
+  }
+  .lang-btn[aria-pressed="true"] { background: #fff; color: var(--ink); border-color: #fff; }
+
+  .cols { flex: 1; min-height: 0; display: grid; grid-template-columns: 380px minmax(0, 1fr) 440px; }
+
+  .list { background: var(--card); border-right: 1px solid var(--line); padding: 24px 20px 24px 28px; overflow-y: auto; }
+  .list-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  .list-head h2 { margin: 0; font-family: var(--display); font-size: 20px; font-weight: 600; }
+  .list-head span { font-size: 15px; color: var(--muted); }
+  .cards { display: flex; flex-direction: column; gap: 10px; }
+  .ev-card {
+    width: 100%; text-align: left; border: 0; border-radius: 16px; padding: 14px 16px; background: var(--ground); color: var(--ink);
+    display: grid; grid-template-columns: 40px 1fr; gap: 4px 12px; align-items: start;
+  }
+  .ev-card .num {
+    grid-row: span 3; width: 40px; height: 40px; border-radius: 50%; background: var(--blue); color: #fff;
+    display: grid; place-items: center; font-weight: 700;
+  }
+  .ev-card .cat { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--blue); }
+  .ev-card .title { font-size: 18px; font-weight: 600; line-height: 1.25; }
+  .ev-card .meta { font-size: 14px; color: var(--muted); }
+  .ev-card.sel { background: var(--blue); color: #fff; }
+  .ev-card.sel .num { background: var(--gold); color: var(--ink); }
+  .ev-card.sel .cat { color: var(--gold-soft); }
+  .ev-card.sel .meta { color: #D6E2F5; }
+
+  .map-wrap { position: relative; min-height: 0; }
+  #map { position: absolute; inset: 0; }
+  .map-hint {
+    position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 500; pointer-events: none;
+    background: rgba(255,255,255,0.94); border-radius: 14px; padding: 14px 18px; font-size: 16px; color: var(--ink-2);
+    box-shadow: 0 2px 10px rgba(20,32,46,0.15); text-align: center;
+  }
+  .ev-marker {
+    width: 44px; height: 44px; border-radius: 50%; background: var(--blue); color: #fff; border: 4px solid #fff;
+    box-shadow: 0 2px 8px rgba(20,32,46,0.35); display: grid; place-items: center; font-weight: 700; font-size: 16px;
+    transition: transform 0.15s;
+  }
+  .ev-marker.sel { background: var(--gold); color: var(--ink); transform: scale(1.3); }
+  .you { position: relative; width: 24px; height: 24px; }
+  .you .dot { position: absolute; inset: 0; border-radius: 50%; background: var(--ink); border: 4px solid #fff; box-shadow: 0 0 0 2px var(--ink); }
+  .you .ring { position: absolute; inset: -20px; border-radius: 50%; background: rgba(20,32,46,0.15); animation: pulse 2s infinite; }
+  .you .tag {
+    position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); white-space: nowrap;
+    background: var(--ink); color: #fff; font-size: 14px; font-weight: 600; padding: 6px 10px; border-radius: 10px;
+  }
+  @keyframes pulse { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+
+  .details { background: var(--card); border-left: 1px solid var(--line); padding: 24px 28px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+  .eyebrow { font-size: 14px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .photo {
+    height: 150px; flex: none; border-radius: 16px; display: grid; place-items: center; color: var(--muted); font-size: 15px;
+    background: repeating-linear-gradient(135deg, #DCE3EC 0 14px, #E5EAF1 14px 28px);
+  }
+  .tag-cat { align-self: flex-start; padding: 6px 12px; border-radius: 999px; background: var(--blue-soft); color: var(--blue-ink); font-size: 14px; font-weight: 600; }
+  .details h1 { margin: 0; font-family: var(--display); font-size: 26px; line-height: 1.25; font-weight: 600; }
+  .facts { display: flex; flex-direction: column; gap: 8px; }
+  .fact { display: flex; gap: 10px; align-items: center; font-size: 17px; }
+  .fact svg { flex: none; color: var(--blue); }
+  .details p { margin: 0; font-size: 16px; line-height: 1.55; color: var(--ink-2); }
+  .route-zone { margin-top: auto; display: flex; flex-direction: column; gap: 12px; padding-top: 6px; }
+  .route-card { border-radius: 16px; padding: 14px 16px; background: var(--blue-soft); }
+  .route-card.fallback { background: var(--warn-bg); border: 1px solid var(--warn-line); }
+  .route-big { font-family: var(--display); font-size: 24px; font-weight: 600; }
+  .route-note { font-size: 14px; color: var(--ink-2); margin-top: 4px; line-height: 1.4; }
+  .btn-primary {
+    height: 64px; border: 0; border-radius: 16px; background: var(--blue); color: #fff; font-size: 19px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .btn-primary:hover { background: var(--blue-ink); }
+  .empty { margin: auto; text-align: center; color: var(--muted); font-size: 18px; max-width: 280px; line-height: 1.5; }
+
+  @media (max-width: 1100px) {
+    #terminal { height: auto; }
+    .top { height: auto; padding: 16px; flex-wrap: wrap; }
+    .cols { grid-template-columns: minmax(0, 1fr); }
+    .map-wrap { height: 60vh; }
+    .list, .details { border: 0; padding: 16px; }
+  }
+
+  /* ---------- admin ---------- */
+  #admin { min-height: calc(100vh - 44px); }
+  .login {
+    max-width: 440px; margin: 80px auto; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 32px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .login h1 { margin: 0; font-family: var(--display); font-size: 22px; font-weight: 600; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 14px; font-weight: 600; color: var(--ink-2); }
+  .field input, .field textarea, .field select {
+    min-height: 44px; padding: 10px 12px; border: 1px solid #B8C2CE; border-radius: 10px; background: #fff; color: var(--ink);
+  }
+  .field textarea { min-height: 96px; resize: vertical; }
+  .help { font-size: 13px; color: var(--muted); }
+  .err { font-size: 14px; color: var(--danger); }
+  .btn { height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #B8C2CE; background: #fff; color: var(--ink); font-weight: 600; }
+  .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .btn.danger { color: var(--danger); border-color: #E3A39C; }
+  .btn.small { height: 36px; padding: 0 12px; font-size: 14px; }
+
+  .adm-top { background: var(--ink); color: #fff; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .adm-top .brand-name { font-size: 20px; }
+  .adm-body { max-width: 1320px; margin: 0 auto; padding: 24px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .adm-list { flex: 999 1 560px; min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+  .adm-list-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .adm-list-head h2, .adm-form h2 { margin: 0; font-family: var(--display); font-size: 18px; font-weight: 600; }
+  .tbl-box { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th { text-align: left; font-size: 13px; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 10px; border-bottom: 1px solid #E8ECF0; vertical-align: middle; }
+  tr.editing td { background: var(--blue-soft); }
+  .lc { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 7px; border-radius: 6px; margin-right: 4px; }
+  .lc.ok { background: #DCF0E4; color: var(--ok); }
+  .lc.miss { background: #fff; color: var(--danger); border: 1px dashed #E3A39C; }
+  .actions { display: flex; gap: 6px; white-space: nowrap; }
+
+  .adm-form { flex: 1 1 420px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .tabs { display: flex; gap: 4px; background: var(--ground); padding: 4px; border-radius: 12px; }
+  .tabs button { flex: 1; height: 38px; border: 0; border-radius: 9px; background: transparent; font-weight: 700; color: var(--muted); }
+  .tabs button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(20,32,46,0.15); }
+  .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  #pickMap { height: 220px; border-radius: 12px; border: 1px solid var(--line); }
+  .form-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .toast { border-radius: 10px; padding: 10px 14px; background: #DCF0E4; color: #14532D; font-size: 14px; }
+  .errors { border-radius: 10px; padding: 10px 14px; background: #FDECEA; color: var(--danger); font-size: 14px; }
+  .errors ul { margin: 4px 0 0; padding-left: 18px; }
+</style>
+</head>
+<body>
+
+<div class="demo-bar">
+  <strong>Макет LvivCultureNav</strong>
+  <div class="seg" role="group" aria-label="Екран">
+    <button type="button" data-view="terminal" aria-pressed="true">Термінал</button>
+    <button type="button" data-view="admin" aria-pressed="false">/admin</button>
+  </div>
+  <span>Демо-дані, зміни живуть до перезавантаження</span>
+  <label><input type="checkbox" id="offline"> Симулювати збій сервісу маршрутів</label>
+</div>
+
+<!-- ======================= TERMINAL ======================= -->
+<div id="terminal">
+  <header class="top">
+    <div class="brand">
+      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#F2B233"/><path d="M20 9c-5 0-9 4-9 9 0 7 9 13 9 13s9-6 9-13c0-5-4-9-9-9z" fill="#14202E"/><circle cx="20" cy="18" r="3.5" fill="#F2B233"/></svg>
+      <div>
+        <div class="brand-name">LvivCultureNav</div>
+        <div class="brand-sub" data-i18n="sub"></div>
+      </div>
+    </div>
+    <div class="here">
+      <span data-i18n="here"></span>
+      <button type="button" class="chip-btn" data-term="station"></button>
+      <button type="button" class="chip-btn" data-term="center"></button>
+    </div>
+    <nav class="langs" id="langs">
+      <button type="button" class="lang-btn" data-lang="uk">UK</button>
+      <button type="button" class="lang-btn" data-lang="en">EN</button>
+      <button type="button" class="lang-btn" data-lang="pl">PL</button>
+    </nav>
+  </header>
+
+  <main class="cols">
+    <section class="list">
+      <div class="list-head"><h2 data-i18n="events"></h2><span id="count"></span></div>
+      <div class="cards" id="cards"></div>
+    </section>
+    <section class="map-wrap">
+      <div id="map"></div>
+      <div class="map-hint" data-i18n="hint"></div>
+    </section>
+    <aside class="details" id="details" aria-live="polite"></aside>
+  </main>
+</div>
+
+<!-- ======================= ADMIN ======================= -->
+<div id="admin" hidden>
+  <form class="login" id="loginForm">
+    <h1>Вхід адміністратора</h1>
+    <div class="field">
+      <label for="adminKey">Ключ адміністратора</label>
+      <input id="adminKey" type="password" autocomplete="off" placeholder="X-Admin-Key">
+      <span class="help">На сервері ключ задається змінною ADMIN_KEY. У макеті: <b>demo</b></span>
+    </div>
+    <div class="err" id="loginErr" hidden>Невірний ключ доступу. Спробуйте ще раз.</div>
+    <button class="btn primary" type="submit">Увійти</button>
+  </form>
+
+  <div id="panel" hidden>
+    <div class="adm-top">
+      <div class="brand">
+        <div class="brand-name">LvivCultureNav</div>
+        <span style="color:#C5CFDA">Адмін-панель</span>
+      </div>
+      <button class="btn small" type="button" id="logout">Вийти</button>
+    </div>
+    <div class="adm-body">
+      <section class="adm-list">
+        <div class="adm-list-head">
+          <h2>Події</h2>
+          <button class="btn primary" type="button" id="newEv">+ Нова подія</button>
+        </div>
+        <div class="tbl-box">
+          <table>
+            <thead><tr><th>Назва (UK)</th><th>Дата</th><th>Місце</th><th>Переклади</th><th></th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <form class="adm-form" id="evForm" novalidate>
+        <h2 id="formTitle">Редагування події</h2>
+        <div class="tabs" role="tablist" aria-label="Мова контенту">
+          <button type="button" role="tab" data-flang="uk">UK</button>
+          <button type="button" role="tab" data-flang="en">EN</button>
+          <button type="button" role="tab" data-flang="pl">PL</button>
+        </div>
+        <div class="field"><label for="fTitle">Назва</label><input id="fTitle"></div>
+        <div class="row2">
+          <div class="field"><label for="fCat">Категорія</label><input id="fCat"></div>
+          <div class="field"><label for="fVenue">Місце</label><input id="fVenue"></div>
+        </div>
+        <div class="field"><label for="fDesc">Опис</label><textarea id="fDesc"></textarea></div>
+        <div class="field"><label for="fStart">Дата і час початку</label><input id="fStart" type="datetime-local"></div>
+        <div class="field">
+          <label>Точка на мапі</label>
+          <div id="pickMap"></div>
+          <span class="help">Торкніться мапи, щоб обрати місце</span>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="fLat">Широта</label><input id="fLat" type="number" step="0.0001"></div>
+          <div class="field"><label for="fLng">Довгота</label><input id="fLng" type="number" step="0.0001"></div>
+        </div>
+        <div class="field"><label for="fMedia">Медіа (URL зображення)</label><input id="fMedia" type="url" placeholder="https://…"></div>
+        <div class="errors" id="formErr" hidden></div>
+        <div class="toast" id="toast" hidden></div>
+        <div class="form-actions">
+          <button class="btn primary" type="submit">Зберегти</button>
+          <button class="btn" type="button" id="cancelEdit">Скасувати</button>
+          <button class="btn danger" type="button" id="deleteEv">Видалити</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ---------------------------------------------------------------- i18n
+const UI = {
+  uk: { locale: 'uk-UA', sub: 'Культурні події Львова', here: 'Ви тут', station: 'Вокзал', center: 'Центр',
+        events: 'Події', details: 'Деталі події', route: 'Прокласти маршрут', hide: 'Сховати маршрут',
+        building: 'Будуємо маршрут…', walk: 'пішки', min: 'хв', km: 'км',
+        online: 'Пішохідний маршрут вулицями',
+        offline: 'Сервіс маршрутів недоступний — показано пряму лінію, відстань орієнтовна',
+        photo: 'Фото події', hint: 'Торкніться маркера або картки, щоб побачити деталі',
+        empty: 'Оберіть подію на мапі або у списку',
+        forms: { one: 'подія', few: 'події', many: 'подій', other: 'події' } },
+  en: { locale: 'en-GB', sub: 'Cultural events in Lviv', here: 'You are here', station: 'Station', center: 'Centre',
+        events: 'Events', details: 'Event details', route: 'Show route', hide: 'Hide route',
+        building: 'Building route…', walk: 'on foot', min: 'min', km: 'km',
+        online: 'Walking route along streets',
+        offline: 'Routing service unavailable — straight line shown, distance is approximate',
+        photo: 'Event photo', hint: 'Tap a marker or a card to see details',
+        empty: 'Pick an event on the map or in the list',
+        forms: { one: 'event', other: 'events' } },
+  pl: { locale: 'pl-PL', sub: 'Wydarzenia kulturalne we Lwowie', here: 'Jesteś tutaj', station: 'Dworzec', center: 'Centrum',
+        events: 'Wydarzenia', details: 'Szczegóły wydarzenia', route: 'Wyznacz trasę', hide: 'Ukryj trasę',
+        building: 'Wyznaczamy trasę…', walk: 'pieszo', min: 'min', km: 'km',
+        online: 'Trasa piesza ulicami',
+        offline: 'Usługa tras niedostępna — pokazano linię prostą, odległość przybliżona',
+        photo: 'Zdjęcie wydarzenia', hint: 'Dotknij znacznika lub karty, aby zobaczyć szczegóły',
+        empty: 'Wybierz wydarzenie na mapie lub z listy',
+        forms: { one: 'wydarzenie', few: 'wydarzenia', many: 'wydarzeń', other: 'wydarzenia' } },
+};
+const LANGS = ['uk', 'en', 'pl'];
+
+const TERMINALS = {
+  station: { lat: 49.8396, lng: 23.9945 },
+  center:  { lat: 49.8389, lng: 24.0302 },
+};
+
+// Демо-дані (у продукті приходять з GET /api/events?lang=…)
+let events = [
+  { id: 'opera', lat: 49.8441, lng: 24.0262, start: '2026-10-17T18:00', media: '',
+    cat:   { uk: 'Опера', en: 'Opera', pl: 'Opera' },
+    title: { uk: '«Наталка Полтавка»', en: 'Natalka Poltavka', pl: 'Natałka Połtawka' },
+    venue: { uk: 'Львівська національна опера', en: 'Lviv National Opera', pl: 'Lwowska Opera Narodowa' },
+    desc:  { uk: 'Класична українська опера Миколи Лисенка на головній сцені міста.',
+             en: 'Mykola Lysenko’s classic Ukrainian opera on the city’s main stage.',
+             pl: 'Klasyczna ukraińska opera Mykoły Łysenki na głównej scenie miasta.' } },
+  { id: 'rynok', lat: 49.8419, lng: 24.0316, start: '2026-10-18T11:00', media: '',
+    cat:   { uk: 'Фестиваль', en: 'Festival', pl: 'Festiwal' },
+    title: { uk: 'Осінній ярмарок на Ринку', en: 'Autumn Fair at Rynok Square', pl: 'Jesienny jarmark na Rynku' },
+    venue: { uk: 'Площа Ринок', en: 'Rynok Square', pl: 'Rynek' },
+    desc:  { uk: 'Ремісничі ряди, локальна кава та жива музика просто неба в історичному центрі.',
+             en: 'Craft stalls, local coffee and live open-air music in the historic centre.',
+             pl: 'Stoiska rzemieślnicze, lokalna kawa i muzyka na żywo pod gołym niebem w historycznym centrum.' } },
+  { id: 'pinsel', lat: 49.8418, lng: 24.0369, start: '2026-10-19T12:00', media: '',
+    cat:   { uk: 'Музей', en: 'Museum', pl: 'Muzeum' },
+    title: { uk: 'Екскурсія «Майстер Пінзель»', en: 'Tour: Master Pinsel', pl: 'Zwiedzanie: Mistrz Pinsel' },
+    venue: { uk: 'Музей Пінзеля', en: 'Pinsel Museum', pl: 'Muzeum Pinsla' },
+    desc:  { uk: 'Екскурсія залами з дерев’яною скульптурою Йоана Георгія Пінзеля, майстра львівського бароко.',
+             en: 'A guided tour of the halls of wooden sculpture by Johann Georg Pinsel, master of Lviv baroque.',
+             pl: 'Zwiedzanie z przewodnikiem sal z drewnianymi rzeźbami Jana Jerzego Pinsla, mistrza lwowskiego baroku.' } },
+  { id: 'arsenal', lat: 49.8414, lng: 24.0350, start: '2026-10-20T20:00', media: '',
+    cat:   { uk: 'Екскурсія', en: 'Tour', pl: 'Zwiedzanie' },
+    title: { uk: 'Нічна екскурсія в Арсеналі', en: 'Night Tour of the Arsenal', pl: 'Nocne zwiedzanie Arsenału' },
+    venue: { uk: 'Музей зброї «Арсенал»', en: 'Arsenal Museum', pl: 'Muzeum Broni „Arsenał”' },
+    desc:  { uk: 'Вечірня прогулянка міською фортифікацією XVI століття з ліхтарями.',
+             en: 'An evening walk through the 16th-century city fortifications by lantern light.',
+             pl: '' } },
+  { id: 'phil', lat: 49.8378, lng: 24.0290, start: '2026-10-21T19:00', media: '',
+    cat:   { uk: 'Концерт', en: 'Concert', pl: 'Koncert' },
+    title: { uk: 'Симфонічний вечір: Скорик', en: 'Symphony Evening: Skoryk', pl: 'Wieczór symfoniczny: Skoryk' },
+    venue: { uk: 'Львівська філармонія', en: 'Lviv Philharmonic', pl: 'Filharmonia Lwowska' },
+    desc:  { uk: 'Твори Мирослава Скорика у виконанні симфонічного оркестру філармонії.',
+             en: 'Works by Myroslav Skoryk performed by the Philharmonic Symphony Orchestra.',
+             pl: 'Utwory Myrosława Skoryka w wykonaniu orkiestry symfonicznej filharmonii.' } },
+  { id: 'palace', lat: 49.8370, lng: 24.0230, start: '2026-10-17T10:00', media: '',
+    cat:   { uk: 'Виставка', en: 'Exhibition', pl: 'Wystawa' },
+    title: { uk: 'Виставка сучасної графіки', en: 'Contemporary Graphics Exhibition', pl: 'Wystawa grafiki współczesnej' },
+    venue: { uk: 'Палац мистецтв', en: 'Palace of Arts', pl: 'Pałac Sztuki' },
+    desc:  { uk: 'Роботи львівських графіків і студентів Академії мистецтв.',
+             en: 'Works by Lviv graphic artists and students of the Academy of Arts.',
+             pl: 'Prace lwowskich grafików i studentów Akademii Sztuk Pięknych.' } },
+];
+
+// Якщо переклад відсутній — показуємо en, потім uk (як domain/localize на сервері)
+function tr(field, lang) {
+  return field[lang] || field.en || field.uk || '';
+}
+
+const state = { lang: 'uk', term: 'station', sel: 'opera', routeOn: false, route: null };
+const t = (k) => UI[state.lang][k];
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function fmtDate(iso, lang) {
+  return new Intl.DateTimeFormat(UI[lang].locale, { weekday: 'short', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+    .format(new Date(iso));
+}
+function countLabel(n) {
+  const form = new Intl.PluralRules(t('locale')).select(n);
+  return `${n} ${t('forms')[form] || t('forms').other}`;
+}
+const sorted = () => [...events].sort((a, b) => a.start.localeCompare(b.start));
+
+// ---------------------------------------------------------------- map
+const map = L.map('map', { zoomControl: true }).setView([49.8405, 24.018], 15);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+}).addTo(map);
+const markerLayer = L.layerGroup().addTo(map);
+const routeLayer = L.layerGroup().addTo(map);
+let youMarker = null;
+
+function fitAll() {
+  const pts = events.map((e) => [e.lat, e.lng]).concat([[TERMINALS[state.term].lat, TERMINALS[state.term].lng]]);
+  map.fitBounds(pts, { padding: [70, 70] });
+}
+
+// ---------------------------------------------------------------- terminal render
+function renderStatic() {
+  document.documentElement.lang = state.lang;
+  document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === state.lang)));
+  document.getElementById('langs').setAttribute('aria-label', state.lang === 'uk' ? 'Мова' : state.lang === 'pl' ? 'Język' : 'Language');
+  document.querySelectorAll('[data-term]').forEach((b) => {
+    b.textContent = t(b.dataset.term);
+    b.setAttribute('aria-pressed', String(b.dataset.term === state.term));
+  });
+}
+
+function renderCards() {
+  const list = sorted();
+  document.getElementById('count').textContent = countLabel(list.length);
+  document.getElementById('cards').innerHTML = list.map((e, i) => `
+    <button type="button" class="ev-card${e.id === state.sel ? ' sel' : ''}" data-id="${e.id}" aria-pressed="${e.id === state.sel}">
+      <span class="num">${i + 1}</span>
+      <span class="cat">${esc(tr(e.cat, state.lang))}</span>
+      <span class="title">${esc(tr(e.title, state.lang))}</span>
+      <span class="meta">${esc(fmtDate(e.start, state.lang))} · ${esc(tr(e.venue, state.lang))}</span>
+    </button>`).join('');
+}
+
+function renderMarkers() {
+  markerLayer.clearLayers();
+  sorted().forEach((e, i) => {
+    const icon = L.divIcon({
+      className: '', iconSize: [44, 44], iconAnchor: [22, 22],
+      html: `<div class="ev-marker${e.id === state.sel ? ' sel' : ''}">${i + 1}</div>`,
+    });
+    L.marker([e.lat, e.lng], { icon, title: tr(e.title, state.lang), zIndexOffset: e.id === state.sel ? 1000 : 0 })
+      .on('click', () => select(e.id))
+      .addTo(markerLayer);
+  });
+  if (youMarker) youMarker.remove();
+  const p = TERMINALS[state.term];
+  youMarker = L.marker([p.lat, p.lng], {
+    interactive: false, zIndexOffset: 2000,
+    icon: L.divIcon({ className: '', iconSize: [24, 24], iconAnchor: [12, 12],
+      html: `<div class="you"><div class="ring"></div><div class="dot"></div><div class="tag">${esc(t('here'))}</div></div>` }),
+  }).addTo(map);
+}
+
+const ICON_CAL = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+const ICON_PIN = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 21s7-6 7-12a7 7 0 1 0-14 0c0 6 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>';
+const ICON_ROUTE = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h7a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h7"/></svg>';
+
+function renderDetails() {
+  const box = document.getElementById('details');
+  const e = events.find((x) => x.id === state.sel);
+  if (!e) { box.innerHTML = `<div class="eyebrow">${esc(t('details'))}</div><div class="empty">${esc(t('empty'))}</div>`; return; }
+  let routeHtml = '';
+  if (state.routeOn) {
+    const r = state.route;
+    if (!r) routeHtml = `<div class="route-card"><div class="route-note">${esc(t('building'))}</div></div>`;
+    else {
+      const km = (r.meters / 1000).toLocaleString(t('locale'), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+      routeHtml = `<div class="route-card${r.mode === 'fallback' ? ' fallback' : ''}">
+        <div class="route-big">${km} ${esc(t('km'))} · ${r.minutes} ${esc(t('min'))} ${esc(t('walk'))}</div>
+        <div class="route-note">${esc(t(r.mode === 'fallback' ? 'offline' : 'online'))}</div></div>`;
+    }
+  }
+  box.innerHTML = `
+    <div class="eyebrow">${esc(t('details'))}</div>
+    <div class="photo">[${esc(t('photo'))}]</div>
+    <span class="tag-cat">${esc(tr(e.cat, state.lang))}</span>
+    <h1>${esc(tr(e.title, state.lang))}</h1>
+    <div class="facts">
+      <div class="fact">${ICON_CAL}<span>${esc(fmtDate(e.start, state.lang))}</span></div>
+      <div class="fact">${ICON_PIN}<span>${esc(tr(e.venue, state.lang))}</span></div>
+    </div>
+    <p>${esc(tr(e.desc, state.lang))}</p>
+    <div class="route-zone">
+      ${routeHtml}
+      <button type="button" class="btn-primary" id="routeBtn">${ICON_ROUTE}${esc(t(state.routeOn ? 'hide' : 'route'))}</button>
+    </div>`;
+  document.getElementById('routeBtn').onclick = toggleRoute;
+}
+
+function renderAll() { renderStatic(); renderCards(); renderMarkers(); renderDetails(); }
+
+// ---------------------------------------------------------------- routing (OSRM + fallback)
+function haversine(a, b) {
+  const R = 6371000, rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const WALK_M_PER_MIN = 80; // ≈ 4,8 км/год
+
+async function fetchOsrm(from, to) {
+  if (document.getElementById('offline').checked) throw new Error('simulated outage');
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const url = `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`;
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const r = data.routes && data.routes[0];
+    if (!r) throw new Error('no route');
+    return { mode: 'online', meters: r.distance, minutes: Math.max(1, Math.round(r.distance / WALK_M_PER_MIN)),
+             line: r.geometry.coordinates.map(([lng, lat]) => [lat, lng]) };
+  } finally { clearTimeout(timer); }
+}
+
+let routeToken = 0;
+async function buildRoute() {
+  const e = events.find((x) => x.id === state.sel);
+  if (!e) return;
+  const token = ++routeToken;
+  const from = TERMINALS[state.term];
+  state.routeOn = true; state.route = null; routeLayer.clearLayers(); renderDetails();
+  let r;
+  try { r = await fetchOsrm(from, e); }
+  catch {
+    const meters = haversine(from, e);
+    r = { mode: 'fallback', meters, minutes: Math.max(1, Math.round(meters / WALK_M_PER_MIN)), line: [[from.lat, from.lng], [e.lat, e.lng]] };
+  }
+  if (token !== routeToken || !state.routeOn) return;
+  state.route = r;
+  L.polyline(r.line, { color: '#FFFFFF', weight: 11, opacity: 0.9 }).addTo(routeLayer);
+  L.polyline(r.line, { color: '#1C4E9A', weight: 6, dashArray: r.mode === 'fallback' ? '10 12' : null }).addTo(routeLayer);
+  map.fitBounds(r.line, { padding: [80, 80] });
+  renderDetails();
+}
+function clearRoute() { routeToken++; state.routeOn = false; state.route = null; routeLayer.clearLayers(); }
+function toggleRoute() { if (state.routeOn) { clearRoute(); renderDetails(); } else buildRoute(); }
+
+// ---------------------------------------------------------------- interactions
+function select(id) {
+  state.sel = id;
+  renderCards(); renderMarkers(); renderDetails();
+  const e = events.find((x) => x.id === id);
+  if (state.routeOn) buildRoute();
+  else if (e && !map.getBounds().pad(-0.1).contains([e.lat, e.lng])) map.panTo([e.lat, e.lng]);
+}
+document.getElementById('cards').addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-id]');
+  if (b) select(b.dataset.id);
+});
+document.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => {
+  state.lang = b.dataset.lang; renderAll(); // без перезавантаження сторінки (REQ-2.2)
+}));
+document.querySelectorAll('[data-term]').forEach((b) => b.addEventListener('click', () => {
+  state.term = b.dataset.term; renderAll();
+  if (state.routeOn) buildRoute(); else fitAll();
+}));
+document.getElementById('offline').addEventListener('change', () => { if (state.routeOn) buildRoute(); });
+
+// ---------------------------------------------------------------- view switch
+document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => {
+  const v = b.dataset.view;
+  document.querySelectorAll('[data-view]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  document.getElementById('terminal').hidden = v !== 'terminal';
+  document.getElementById('admin').hidden = v !== 'admin';
+  if (v === 'terminal') { map.invalidateSize(); renderAll(); }
+  if (v === 'admin' && pickMap) pickMap.invalidateSize();
+}));
+
+// ================================================================ ADMIN
+const LVIV_BOUNDS = { minLat: 49.75, maxLat: 49.93, minLng: 23.90, maxLng: 24.15 };
+let editingId = null;     // null → нова подія
+let draft = null;
+let formLang = 'uk';
+let pickMap = null, pickMarker = null;
+
+document.getElementById('loginForm').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const ok = document.getElementById('adminKey').value === 'demo';
+  document.getElementById('loginErr').hidden = ok;
+  if (!ok) return;
+  document.getElementById('loginForm').hidden = true;
+  document.getElementById('panel').hidden = false;
+  initPickMap();
+  renderRows();
+  startEdit(sorted()[0].id);
+});
+document.getElementById('logout').addEventListener('click', () => {
+  document.getElementById('panel').hidden = true;
+  document.getElementById('loginForm').hidden = false;
+  document.getElementById('adminKey').value = '';
+});
+
+function langsComplete(e) {
+  return LANGS.map((l) => {
+    const ok = Boolean(e.title[l] && e.desc[l] && e.venue[l]);
+    return `<span class="lc ${ok ? 'ok' : 'miss'}" title="${ok ? 'Переклад повний' : 'Бракує перекладу'}">${l.toUpperCase()}${ok ? '' : ' —'}</span>`;
+  }).join('');
+}
+
+function renderRows() {
+  document.getElementById('rows').innerHTML = sorted().map((e) => `
+    <tr class="${e.id === editingId ? 'editing' : ''}">
+      <td><b>${esc(e.title.uk)}</b></td>
+      <td style="white-space:nowrap">${esc(fmtDate(e.start, 'uk'))}</td>
+      <td>${esc(e.venue.uk)}</td>
+      <td style="white-space:nowrap">${langsComplete(e)}</td>
+      <td><div class="actions">
+        <button class="btn small" type="button" data-edit="${e.id}">Редагувати</button>
+        <button class="btn small danger" type="button" data-del="${e.id}" aria-label="Видалити «${esc(e.title.uk)}»">Видалити</button>
+      </div></td>
+    </tr>`).join('');
+}
+document.getElementById('rows').addEventListener('click', (ev) => {
+  const ed = ev.target.closest('[data-edit]');
+  const del = ev.target.closest('[data-del]');
+  if (ed) startEdit(ed.dataset.edit);
+  if (del) removeEvent(del.dataset.del);
+});
+
+function blankEvent() {
+  const empty = () => ({ uk: '', en: '', pl: '' });
+  return { id: null, lat: 49.8419, lng: 24.0316, start: '', media: '', cat: empty(), title: empty(), venue: empty(), desc: empty() };
+}
+
+function startEdit(id) {
+  editingId = id;
+  const src = id ? events.find((e) => e.id === id) : blankEvent();
+  draft = JSON.parse(JSON.stringify(src));
+  formLang = 'uk';
+  document.getElementById('formTitle').textContent = id ? 'Редагування події' : 'Нова подія';
+  document.getElementById('deleteEv').hidden = !id;
+  document.getElementById('formErr').hidden = true;
+  document.getElementById('toast').hidden = true;
+  fillForm();
+  renderRows();
+}
+
+function fillForm() {
+  document.querySelectorAll('[data-flang]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.flang === formLang)));
+  document.getElementById('fTitle').value = draft.title[formLang];
+  document.getElementById('fCat').value = draft.cat[formLang];
+  document.getElementById('fVenue').value = draft.venue[formLang];
+  document.getElementById('fDesc').value = draft.desc[formLang];
+  document.getElementById('fStart').value = draft.start;
+  document.getElementById('fLat').value = draft.lat;
+  document.getElementById('fLng').value = draft.lng;
+  document.getElementById('fMedia').value = draft.media;
+  placePick();
+}
+
+function readForm() {
+  draft.title[formLang] = document.getElementById('fTitle').value.trim();
+  draft.cat[formLang] = document.getElementById('fCat').value.trim();
+  draft.venue[formLang] = document.getElementById('fVenue').value.trim();
+  draft.desc[formLang] = document.getElementById('fDesc').value.trim();
+  draft.start = document.getElementById('fStart').value;
+  draft.lat = parseFloat(document.getElementById('fLat').value);
+  draft.lng = parseFloat(document.getElementById('fLng').value);
+  draft.media = document.getElementById('fMedia').value.trim();
+}
+
+document.querySelectorAll('[data-flang]').forEach((b) => b.addEventListener('click', () => {
+  readForm(); formLang = b.dataset.flang; fillForm();
+}));
+['fLat', 'fLng'].forEach((id) => document.getElementById(id).addEventListener('change', () => { readForm(); placePick(); }));
+
+function initPickMap() {
+  if (pickMap) { pickMap.invalidateSize(); return; }
+  pickMap = L.map('pickMap', { attributionControl: false }).setView([49.8405, 24.03], 14);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(pickMap);
+  pickMap.on('click', (ev) => {
+    readForm();
+    draft.lat = +ev.latlng.lat.toFixed(5); draft.lng = +ev.latlng.lng.toFixed(5);
+    document.getElementById('fLat').value = draft.lat;
+    document.getElementById('fLng').value = draft.lng;
+    placePick();
+  });
+}
+function placePick() {
+  if (!pickMap || !Number.isFinite(draft.lat) || !Number.isFinite(draft.lng)) return;
+  if (pickMarker) pickMarker.remove();
+  pickMarker = L.marker([draft.lat, draft.lng], {
+    icon: L.divIcon({ className: '', iconSize: [36, 36], iconAnchor: [18, 18], html: '<div class="ev-marker sel" style="width:36px;height:36px;transform:none"></div>' }),
+  }).addTo(pickMap);
+  pickMap.panTo([draft.lat, draft.lng]);
+}
+
+// Та сама валідація, що й domain/validateEvent на сервері
+function validate(e) {
+  const errs = [];
+  if (!e.title.uk) errs.push('Назва українською обов’язкова');
+  if (!e.venue.uk) errs.push('Місце українською обов’язкове');
+  if (!e.start) errs.push('Вкажіть дату і час початку');
+  if (!Number.isFinite(e.lat) || !Number.isFinite(e.lng) ||
+      e.lat < LVIV_BOUNDS.minLat || e.lat > LVIV_BOUNDS.maxLat || e.lng < LVIV_BOUNDS.minLng || e.lng > LVIV_BOUNDS.maxLng)
+    errs.push('Координати мають бути в межах Львова');
+  return errs;
+}
+
+document.getElementById('evForm').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  readForm();
+  const errs = validate(draft);
+  const errBox = document.getElementById('formErr');
+  const toast = document.getElementById('toast');
+  if (errs.length) {
+    errBox.innerHTML = `<b>Подію не збережено:</b><ul>${errs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
+    errBox.hidden = false; toast.hidden = true; return;
+  }
+  errBox.hidden = true;
+  const created = !editingId;
+  if (editingId) {
+    events = events.map((e) => (e.id === editingId ? draft : e));
+  } else {
+    draft.id = 'ev' + Date.now();
+    events.push(draft);
+    editingId = draft.id;
+  }
+  startEdit(editingId);
+  toast.textContent = created ? 'Подію створено' : 'Зміни збережено';
+  toast.hidden = false;
+});
+document.getElementById('cancelEdit').addEventListener('click', () => startEdit(editingId));
+document.getElementById('deleteEv').addEventListener('click', () => removeEvent(editingId));
+document.getElementById('newEv').addEventListener('click', () => startEdit(null));
+
+function removeEvent(id) {
+  const e = events.find((x) => x.id === id);
+  if (!e || !confirm(`Видалити подію «${e.title.uk}»?`)) return;
+  events = events.filter((x) => x.id !== id);
+  if (state.sel === id) { state.sel = null; clearRoute(); }
+  const next = sorted()[0];
+  startEdit(next ? next.id : null);
+  const toast = document.getElementById('toast');
+  toast.textContent = 'Подію видалено';
+  toast.hidden = false;
+}
+
+// ---------------------------------------------------------------- start
+renderAll();
+fitAll();
+</script>
+</body>
+</html>

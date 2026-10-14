@@ -1,0 +1,42 @@
+{
+  "name": "lviv-culture-nav",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LvivCultureNav — інформаційно-навігаційна система культурних подій Львова (ЛР2, XP)",
+  "workspaces": [
+    "shared",
+    "server",
+    "client",
+    "e2e"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm run build && npm run start -w server",
+    "seed": "npm run seed -w server",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "typecheck": "tsc -p shared && tsc -p server && tsc -p client && tsc -p e2e",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "vitest run --project server-unit --project client-unit",
+    "test:integration": "vitest run --project server-integration",
+    "test:e2e": "npm run test -w e2e",
+    "test:all": "npm run test && npm run test:e2e"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.5",
+    "concurrently": "^10.0.6",
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.4"
+  }
+}

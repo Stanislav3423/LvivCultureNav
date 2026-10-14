@@ -1,0 +1,7 @@
+node_modules
+dist
+docs/mockup.html
+*.pdf
+package-lock.json
+e2e/playwright-report
+e2e/test-results
