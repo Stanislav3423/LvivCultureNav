@@ -23,5 +23,22 @@ export default defineConfig({
       },
       './client/vite.config.ts',
     ],
+    // Покриття коду модульними та інтеграційними тестами: npm run test:coverage → coverage/index.html
+    coverage: {
+      provider: 'v8',
+      include: ['shared/src/**', 'server/src/**', 'client/src/**'],
+      exclude: [
+        'server/src/index.ts', // точка входу: запуск HTTP-сервера
+        'server/src/seed/run.ts', // CLI-скрипт npm run seed
+        'client/src/main.tsx', // монтування React у DOM
+        '**/*.css',
+      ],
+      reporter: [['text', { skipFull: false }], 'html', 'json-summary'],
+      reportsDirectory: './coverage',
+      // Мінімум для серверної логіки: CI падає, якщо покриття ядра просяде
+      thresholds: {
+        'server/src/{domain,repo,services,api}/**': { lines: 90, branches: 75, functions: 85 },
+      },
+    },
   },
 });

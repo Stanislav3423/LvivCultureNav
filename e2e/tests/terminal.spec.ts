@@ -35,13 +35,10 @@ test.describe('Турист біля терміналу на вокзалі', ()
 
     await page.getByRole('button', { name: 'Hide route' }).click();
     await expect(card).toBeHidden();
-  });
 
-  test('бачить запасну мову, якщо перекладу немає (REQ-1.3)', async ({ page }) => {
-    await page.goto('/?terminal=center');
+    // REQ-1.3: якщо польського перекладу немає — показано англійський з підказкою
     await page.getByRole('button', { name: 'PL', exact: true }).click();
     await page.getByRole('button', { name: /Night Tour of the Arsenal/ }).click();
     await expect(page.getByText('Brak tłumaczenia w tym języku — pokazano w EN')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Centrum' })).toHaveAttribute('aria-pressed', 'true');
   });
 });

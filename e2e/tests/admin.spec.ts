@@ -13,15 +13,12 @@ test.describe('Адміністратор керує подіями на /admin 
     }
   });
 
-  test('не входить з неправильним ключем', async ({ page }) => {
+  test('входить за ключем, створює подію, бачить її на терміналі і видаляє', async ({ page }) => {
     await page.goto('/admin');
     await page.getByLabel('Ключ адміністратора').fill('wrong-key');
     await page.getByRole('button', { name: 'Увійти' }).click();
     await expect(page.getByRole('alert')).toHaveText('Невірний ключ доступу. Спробуйте ще раз.');
-  });
 
-  test('створює подію, бачить її на терміналі і видаляє', async ({ page }) => {
-    await page.goto('/admin');
     await page.getByLabel('Ключ адміністратора').fill(ADMIN_KEY);
     await page.getByRole('button', { name: 'Увійти' }).click();
     await expect(page.getByRole('heading', { name: 'Події' })).toBeVisible();

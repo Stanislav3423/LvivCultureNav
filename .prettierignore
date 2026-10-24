@@ -5,3 +5,4 @@ docs/mockup.html
 package-lock.json
 e2e/playwright-report
 e2e/test-results
+coverage
