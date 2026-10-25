@@ -102,10 +102,21 @@ export interface PartnerEventInput extends EventInput {
   externalId: string;
 }
 
+/** Джерело події, отриманої від партнера через API */
+export function partnerSource(partnerId: string): string {
+  return `partner:${partnerId}`;
+}
+
+export interface ImportRejection {
+  index: number;
+  externalId?: string;
+  errors: string[];
+}
+
 export interface ImportResult {
   created: number;
   updated: number;
-  rejected: { index: number; externalId?: string; errors: string[] }[];
+  rejected: ImportRejection[];
 }
 
 export interface ApiError {

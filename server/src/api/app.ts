@@ -3,6 +3,7 @@ import type { EventsRepo } from '../repo/eventsRepo.ts';
 import type { RoutingService } from '../services/routing.ts';
 import { adminRouter } from './admin.ts';
 import { eventsRouter } from './events.ts';
+import { sendError } from './http.ts';
 import { partnersRouter } from './partners.ts';
 import { routeRouter } from './route.ts';
 
@@ -28,16 +29,13 @@ export function createApp(deps: AppDeps) {
   app.use('/api/partners', partnersRouter(deps.repo, deps.partnerKeys));
 
   app.use('/api', (_req, res) => {
-    res.status(404).json({ error: 'Not found' });
+    sendError(res, 404, 'Not found');
   });
 
   const onError: ErrorRequestHandler = (err, _req, res, _next) => {
-    if (err?.type === 'entity.parse.failed') {
-      res.status(400).json({ error: 'Invalid JSON body' });
-      return;
-    }
+    if (err?.type === 'entity.parse.failed') return sendError(res, 400, 'Invalid JSON body');
     console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendError(res, 500, 'Internal server error');
   };
   app.use(onError);
 

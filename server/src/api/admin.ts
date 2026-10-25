@@ -3,12 +3,13 @@ import type { EventInput } from '@lcn/shared';
 import { validateEventInput } from '../domain/validateEvent.ts';
 import type { EventsRepo } from '../repo/eventsRepo.ts';
 import { requireAdmin } from './auth.ts';
+import { notFound, parseId, sendError } from './http.ts';
 
 /** Перевіряє тіло запиту; при помилці сам відповідає 400 і повертає undefined */
 function parseEvent(req: Request, res: Response): EventInput | undefined {
   const errors = validateEventInput(req.body);
   if (errors.length) {
-    res.status(400).json({ error: 'Validation failed', details: errors });
+    sendError(res, 400, { error: 'Validation failed', details: errors });
     return undefined;
   }
   return req.body as EventInput;
@@ -29,20 +30,15 @@ export function adminRouter(repo: EventsRepo, adminKey: string) {
   });
 
   router.put('/events/:id', (req, res) => {
-    const id = Number(req.params.id);
-    if (!repo.get(id)) {
-      res.status(404).json({ error: 'Event not found' });
-      return;
-    }
+    const id = parseId(req.params.id);
+    if (id === undefined || !repo.get(id)) return notFound(res);
     const input = parseEvent(req, res);
     if (input) res.json(repo.update(id, input));
   });
 
   router.delete('/events/:id', (req, res) => {
-    if (!repo.remove(Number(req.params.id))) {
-      res.status(404).json({ error: 'Event not found' });
-      return;
-    }
+    const id = parseId(req.params.id);
+    if (id === undefined || !repo.remove(id)) return notFound(res);
     res.status(204).end();
   });
 

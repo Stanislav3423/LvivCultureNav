@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { RequestHandler } from 'express';
+import { sendError } from './http.ts';
 
 const digest = (s: string) => createHash('sha256').update(s).digest();
 
@@ -18,10 +19,7 @@ export function findPartnerId(
 
 export function requireAdmin(adminKey: string): RequestHandler {
   return (req, res, next) => {
-    if (!keysMatch(adminKey, req.get('X-Admin-Key'))) {
-      res.status(401).json({ error: 'Invalid admin key' });
-      return;
-    }
+    if (!keysMatch(adminKey, req.get('X-Admin-Key'))) return sendError(res, 401, 'Invalid admin key');
     next();
   };
 }
@@ -29,10 +27,7 @@ export function requireAdmin(adminKey: string): RequestHandler {
 export function requirePartner(partnerKeys: Record<string, string>): RequestHandler {
   return (req, res, next) => {
     const partnerId = findPartnerId(partnerKeys, req.get('X-Partner-Key'));
-    if (!partnerId) {
-      res.status(401).json({ error: 'Invalid partner key' });
-      return;
-    }
+    if (!partnerId) return sendError(res, 401, 'Invalid partner key');
     res.locals.partnerId = partnerId;
     next();
   };
