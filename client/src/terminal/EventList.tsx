@@ -1,11 +1,12 @@
 import type { EventView, Lang } from '@lcn/shared';
 import { eventsCount, formatDateTime, t } from '../i18n.ts';
+import type { LoadStatus } from './hooks.ts';
 
 interface Props {
   events: EventView[];
   lang: Lang;
   selectedId: number | null;
-  status: 'loading' | 'ready' | 'error';
+  status: LoadStatus;
   onSelect(id: number): void;
 }
 
