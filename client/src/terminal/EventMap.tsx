@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import L from 'leaflet';
 import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet';
 import type { EventView, LatLng, RouteResult } from '@lcn/shared';
+import { LVIV_CENTER, OSM_TILES } from '../map.ts';
 
 interface Props {
   events: EventView[];
@@ -13,8 +14,6 @@ interface Props {
   hint: string;
   onSelect(id: number): void;
 }
-
-const LVIV_CENTER: [number, number] = [49.8405, 24.018];
 
 function eventIcon(num: number, selected: boolean) {
   return L.divIcon({
@@ -63,11 +62,7 @@ export function EventMap({
   return (
     <section className="map-wrap" aria-label={mapLabel}>
       <MapContainer center={LVIV_CENTER} zoom={15} zoomSnap={0.25} className="map">
-        <TileLayer
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maxZoom={19}
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
+        <TileLayer {...OSM_TILES} />
         <FitBounds points={route ? route.geometry : overview} />
         {route && (
           <>

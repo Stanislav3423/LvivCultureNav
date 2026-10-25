@@ -1,5 +1,7 @@
 import type { LatLng, RouteResult } from '@lcn/shared';
-import { haversineMeters, walkingMinutes } from '../domain/geo.ts';
+import { haversineMeters, minutesFromSeconds, walkingMinutes } from '../domain/geo.ts';
+import { RouteCache } from './routeCache.ts';
+import { createThrottle } from './throttle.ts';
 
 export interface RoutingService {
   route(from: LatLng, to: LatLng): Promise<RouteResult>;
@@ -17,7 +19,7 @@ export interface OsrmOptions {
   cacheSize?: number;
 }
 
-interface OsrmResponse {
+export interface OsrmResponse {
   code?: string;
   routes?: { distance: number; duration: number; geometry: { coordinates: [number, number][] } }[];
 }
@@ -36,48 +38,42 @@ export function straightLine(from: LatLng, to: LatLng): RouteResult {
   };
 }
 
+/** Відповідь OSRM → маршрут терміналу; OSRM віддає точки як [lng, lat] */
+export function toRouteResult(data: OsrmResponse): RouteResult {
+  const route = data.routes?.[0];
+  if (data.code !== 'Ok' || !route) throw new Error(`OSRM code ${data.code}`);
+  return {
+    mode: 'online',
+    distanceMeters: Math.round(route.distance),
+    durationMinutes: minutesFromSeconds(route.duration),
+    geometry: route.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
+  };
+}
+
 export function createOsrmRouting(options: OsrmOptions): RoutingService {
   const { baseUrl, userAgent, timeoutMs = 5000, minIntervalMs = 0, cacheSize = 200 } = options;
   const doFetch = options.fetch ?? globalThis.fetch;
-  const cache = new Map<string, RouteResult>();
-  let nextSlot = 0;
+  const cache = new RouteCache(cacheSize);
+  const waitForSlot = createThrottle(minIntervalMs);
 
-  async function waitForSlot() {
-    const now = Date.now();
-    const wait = Math.max(0, nextSlot - now);
-    nextSlot = Math.max(now, nextSlot) + minIntervalMs;
-    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-  }
-
-  async function fetchOsrm(from: LatLng, to: LatLng): Promise<RouteResult> {
+  async function fetchOsrm(from: LatLng, to: LatLng): Promise<OsrmResponse> {
     await waitForSlot();
     const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`;
-    const url = `${baseUrl}/route/v1/foot/${coords}?overview=full&geometries=geojson`;
-    const res = await doFetch(url, {
+    const res = await doFetch(`${baseUrl}/route/v1/foot/${coords}?overview=full&geometries=geojson`, {
       headers: { 'User-Agent': userAgent, Accept: 'application/json' },
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
-    const data = (await res.json()) as OsrmResponse;
-    const route = data.routes?.[0];
-    if (data.code !== 'Ok' || !route) throw new Error(`OSRM code ${data.code}`);
-    return {
-      mode: 'online',
-      distanceMeters: Math.round(route.distance),
-      durationMinutes: Math.max(1, Math.ceil(route.duration / 60)),
-      geometry: route.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
-    };
+    return (await res.json()) as OsrmResponse;
   }
 
   return {
     async route(from, to) {
-      const key = `${from.lat},${from.lng}->${to.lat},${to.lng}`;
-      const cached = cache.get(key);
+      const cached = cache.get(from, to);
       if (cached) return cached;
       try {
-        const result = await fetchOsrm(from, to);
-        if (cache.size >= cacheSize) cache.delete(cache.keys().next().value!);
-        cache.set(key, result);
+        const result = toRouteResult(await fetchOsrm(from, to));
+        cache.set(from, to, result);
         return result;
       } catch (err) {
         console.warn(`Routing fallback: ${(err as Error).message}`);

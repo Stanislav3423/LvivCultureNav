@@ -1,4 +1,4 @@
-import { LANGS, type EventFull } from '@lcn/shared';
+import { ADMIN_SOURCE, LANGS, type EventFull } from '@lcn/shared';
 import { formatDateTime } from '../i18n.ts';
 
 interface Props {
@@ -51,7 +51,7 @@ export function EventTable({ events, editingId, onEdit, onDelete }: Props) {
               <tr key={e.id} className={e.id === editingId ? 'editing' : undefined}>
                 <td>
                   <b>{title}</b>
-                  {e.source !== 'admin' && <div className="src">{e.source}</div>}
+                  {e.source !== ADMIN_SOURCE && <div className="src">{e.source}</div>}
                 </td>
                 <td className="nowrap">{formatDateTime(e.startsAt, 'uk')}</td>
                 <td>{e.translations.uk?.venue}</td>

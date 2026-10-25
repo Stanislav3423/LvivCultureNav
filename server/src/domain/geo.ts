@@ -13,6 +13,13 @@ export function haversineMeters(a: LatLng, b: LatLng): number {
   return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(h));
 }
 
+/** Час у дорозі округлюється вгору до цілих хвилин, але не менше однієї */
+const wholeMinutes = (minutes: number) => Math.max(1, Math.ceil(minutes));
+
 export function walkingMinutes(meters: number): number {
-  return Math.max(1, Math.ceil(meters / WALK_METERS_PER_MIN));
+  return wholeMinutes(meters / WALK_METERS_PER_MIN);
+}
+
+export function minutesFromSeconds(seconds: number): number {
+  return wholeMinutes(seconds / 60);
 }

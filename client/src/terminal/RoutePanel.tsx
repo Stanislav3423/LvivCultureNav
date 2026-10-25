@@ -1,9 +1,7 @@
-import type { Lang, RouteResult } from '@lcn/shared';
+import type { Lang } from '@lcn/shared';
 import { formatDistance, t } from '../i18n.ts';
+import type { RouteState } from './hooks.ts';
 import { RouteIcon } from './icons.tsx';
-
-export type RouteState =
-  { status: 'idle' } | { status: 'loading' } | { status: 'ready'; route: RouteResult } | { status: 'error' };
 
 interface Props {
   lang: Lang;

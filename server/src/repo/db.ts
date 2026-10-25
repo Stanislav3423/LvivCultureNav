@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
+import { ADMIN_SOURCE } from '@lcn/shared';
 
 export type Db = Database.Database;
 
@@ -11,7 +12,7 @@ CREATE TABLE IF NOT EXISTS events (
   lat         REAL    NOT NULL,
   lng         REAL    NOT NULL,
   media_url   TEXT,
-  source      TEXT    NOT NULL DEFAULT 'admin',
+  source      TEXT    NOT NULL DEFAULT '${ADMIN_SOURCE}',
   external_id TEXT,
   created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
   updated_at  TEXT    NOT NULL DEFAULT (datetime('now')),
