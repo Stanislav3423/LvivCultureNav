@@ -5,17 +5,15 @@ import { createApp } from './api/app.ts';
 import { loadConfig } from './config.ts';
 import { openDb } from './repo/db.ts';
 import { createEventsRepo } from './repo/eventsRepo.ts';
-import { SEED_EVENTS } from './seed/events.ts';
+import { seedIfEmpty } from './seed/seed.ts';
 import { createOsrmRouting } from './services/routing.ts';
 
 const config = loadConfig();
 const db = openDb(config.dbFile);
 const repo = createEventsRepo(db);
 
-if (repo.list().length === 0) {
-  for (const e of SEED_EVENTS) repo.create(e);
-  console.info(`Empty database — seeded ${SEED_EVENTS.length} demo events`);
-}
+const seeded = seedIfEmpty(repo);
+if (seeded) console.info(`Empty database — seeded ${seeded} demo events`);
 
 const routing = createOsrmRouting({
   baseUrl: config.osrmUrl,

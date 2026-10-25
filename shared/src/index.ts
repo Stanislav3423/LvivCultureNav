@@ -69,6 +69,9 @@ export const VALIDATION_ERRORS = {
   ukVenue: 'translations.uk.venue is required',
 } as const;
 
+/** Джерело події, створеної на сторінці /admin */
+export const ADMIN_SOURCE = 'admin';
+
 /** Подія з усіма перекладами — для адмін-панелі */
 export interface EventFull extends EventInput {
   id: number;
