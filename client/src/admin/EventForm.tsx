@@ -1,7 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import L from 'leaflet';
 import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
-import { LANGS, type EventFull, type EventInput, type EventTranslation, type Lang } from '@lcn/shared';
+import {
+  LANGS,
+  VALIDATION_ERRORS,
+  type EventFull,
+  type EventInput,
+  type EventTranslation,
+  type Lang,
+} from '@lcn/shared';
 import { ApiError, type AdminApi } from '../api.ts';
 
 interface Props {
@@ -22,12 +29,12 @@ const EMPTY: EventTranslation = { title: '', venue: '', category: '', descriptio
 
 // Повідомлення сервера (domain/validateEvent) українською для адміністратора
 const MESSAGES: Record<string, string> = {
-  'translations.uk is required': 'Потрібен український переклад',
-  'translations.uk.title is required': 'Назва українською обов’язкова',
-  'translations.uk.venue is required': 'Місце українською обов’язкове',
-  'startsAt must be an ISO date': 'Вкажіть дату і час початку',
-  'coordinates must be within Lviv': 'Координати мають бути в межах Львова',
-  'mediaUrl must be an http(s) URL': 'Посилання на медіа має починатися з http:// або https://',
+  [VALIDATION_ERRORS.ukRequired]: 'Потрібен український переклад',
+  [VALIDATION_ERRORS.ukTitle]: 'Назва українською обов’язкова',
+  [VALIDATION_ERRORS.ukVenue]: 'Місце українською обов’язкове',
+  [VALIDATION_ERRORS.startsAt]: 'Вкажіть дату і час початку',
+  [VALIDATION_ERRORS.coordinates]: 'Координати мають бути в межах Львова',
+  [VALIDATION_ERRORS.mediaUrl]: 'Посилання на медіа має починатися з http:// або https://',
 };
 
 const GENERIC_ERROR = 'Перевірте правильність заповнення полів';

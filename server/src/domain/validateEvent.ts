@@ -1,8 +1,11 @@
-import { LVIV_BOUNDS, isLang } from '@lcn/shared';
+import { VALIDATION_ERRORS, isLang, isWithinLviv } from '@lcn/shared';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?$/;
+const HTTP_URL = /^https?:\/\/\S+$/i;
 
-function isObject(v: unknown): v is Record<string, unknown> {
+type Body = Record<string, unknown>;
+
+function isObject(v: unknown): v is Body {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
@@ -10,48 +13,48 @@ function isBlank(v: unknown): boolean {
   return typeof v !== 'string' || v.trim() === '';
 }
 
-function validateTranslations(raw: unknown): string[] {
-  if (!isObject(raw)) return ['translations.uk is required'];
-  const errors: string[] = [];
-  for (const [lang, t] of Object.entries(raw)) {
-    if (!isLang(lang)) errors.push(`translations.${lang}: unsupported language`);
-    else if (!isObject(t)) errors.push(`translations.${lang} must be an object`);
-  }
-  const uk = raw.uk;
-  if (!isObject(uk)) {
-    errors.push('translations.uk is required');
-  } else {
-    if (isBlank(uk.title)) errors.push('translations.uk.title is required');
-    if (isBlank(uk.venue)) errors.push('translations.uk.venue is required');
-  }
-  return errors;
+function isIsoDate(v: unknown): boolean {
+  return typeof v === 'string' && ISO_DATE.test(v) && !Number.isNaN(Date.parse(v));
 }
+
+/** Медіа необов'язкове: порожнє значення допустиме, інше — лише http(s)-посилання */
+function isOptionalHttpUrl(v: unknown): boolean {
+  if (v === undefined || v === null || v === '') return true;
+  return typeof v === 'string' && HTTP_URL.test(v);
+}
+
+const errorUnless = (ok: boolean, error: string): string[] => (ok ? [] : [error]);
+
+function checkLanguages(translations: Body): string[] {
+  return Object.entries(translations).flatMap(([lang, t]) => {
+    if (!isLang(lang)) return [`translations.${lang}: unsupported language`];
+    return errorUnless(isObject(t), `translations.${lang} must be an object`);
+  });
+}
+
+/** Український переклад обов'язковий: з нього адміністратор бачить подію в таблиці */
+function checkUkrainian(uk: unknown): string[] {
+  if (!isObject(uk)) return [VALIDATION_ERRORS.ukRequired];
+  return [
+    ...errorUnless(!isBlank(uk.title), VALIDATION_ERRORS.ukTitle),
+    ...errorUnless(!isBlank(uk.venue), VALIDATION_ERRORS.ukVenue),
+  ];
+}
+
+function checkTranslations(raw: unknown): string[] {
+  if (!isObject(raw)) return [VALIDATION_ERRORS.ukRequired];
+  return [...checkLanguages(raw), ...checkUkrainian(raw.uk)];
+}
+
+const CHECKS: ((body: Body) => string[])[] = [
+  (b) => errorUnless(isIsoDate(b.startsAt), VALIDATION_ERRORS.startsAt),
+  (b) => errorUnless(isWithinLviv(b.lat, b.lng), VALIDATION_ERRORS.coordinates),
+  (b) => errorUnless(isOptionalHttpUrl(b.mediaUrl), VALIDATION_ERRORS.mediaUrl),
+  (b) => checkTranslations(b.translations),
+];
 
 /** Перевіряє тіло запиту на створення/оновлення події. Порожній масив — подія коректна. */
 export function validateEventInput(body: unknown): string[] {
-  if (!isObject(body)) return ['body must be an object'];
-  const errors: string[] = [];
-
-  const { startsAt, lat, lng, mediaUrl } = body;
-  if (typeof startsAt !== 'string' || !ISO_DATE.test(startsAt) || Number.isNaN(Date.parse(startsAt))) {
-    errors.push('startsAt must be an ISO date');
-  }
-
-  const inLviv =
-    typeof lat === 'number' &&
-    typeof lng === 'number' &&
-    lat >= LVIV_BOUNDS.minLat &&
-    lat <= LVIV_BOUNDS.maxLat &&
-    lng >= LVIV_BOUNDS.minLng &&
-    lng <= LVIV_BOUNDS.maxLng;
-  if (!inLviv) errors.push('coordinates must be within Lviv');
-
-  if (mediaUrl !== undefined && mediaUrl !== null && mediaUrl !== '') {
-    if (typeof mediaUrl !== 'string' || !/^https?:\/\/\S+$/i.test(mediaUrl)) {
-      errors.push('mediaUrl must be an http(s) URL');
-    }
-  }
-
-  errors.push(...validateTranslations(body.translations));
-  return errors;
+  if (!isObject(body)) return [VALIDATION_ERRORS.body];
+  return CHECKS.flatMap((check) => check(body));
 }
